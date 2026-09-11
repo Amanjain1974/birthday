@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>For You</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FFF8F0;
+    --peach:#FFE3D0;
+    --rose:#E8998D;
+    --sage:#A9C6AD;
+    --gold:#E3B23C;
+    --ink:#3E3430;
+    --ink-soft:#8A7D77;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%; overflow:hidden; font-family:'Poppins',sans-serif; color:var(--ink); background:#EDE3D8;}
+
+  #app{position:relative; width:100vw; height:100vh; overflow:hidden;}
+
+  /* On laptop/desktop, don't stretch the experience edge to edge —
+     show it as a centered, phone-proportioned card instead. */
+  @media (min-width:760px){
+    body{
+      display:flex; align-items:center; justify-content:center;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(232,153,141,.25), transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(169,198,173,.28), transparent 45%),
+        #EDE3D8;
+    }
+    #app{
+      width:440px; height:860px; max-height:92vh;
+      border-radius:34px; overflow:hidden;
+      box-shadow:0 40px 80px rgba(58,46,42,.28), 0 0 0 10px #fff, 0 0 0 11px rgba(58,46,42,.08);
+    }
+  }
+
+  .screen{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    transform:translateX(100%); opacity:0;
+    transition:transform .6s cubic-bezier(.65,0,.35,1), opacity .3s;
+    overflow-y:auto; -webkit-overflow-scrolling:touch; padding-top:env(safe-area-inset-top,0); padding-bottom:16px;
+  }
+  .screen.active{transform:translateX(0); opacity:1;}
+  .screen.prev{transform:translateX(-100%); opacity:0;}
+
+  .backdot{position:absolute; top:18px; left:18px; z-index:10; background:rgba(255,255,255,.7); border:none; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px;}
+
+  .next-btn{
+    margin-top:18px; border:none; background:var(--rose); color:#fff; font-family:'Poppins',sans-serif;
+    font-weight:600; font-size:16px; padding:13px 30px; border-radius:100px; cursor:pointer;
+    box-shadow:0 6px 16px rgba(232,153,141,.4);
+    opacity:0; transform:translateY(8px) scale(.96); pointer-events:none;
+    transition:opacity .4s, transform .4s;
+  }
+  .next-btn.show{opacity:1; transform:translateY(0) scale(1); pointer-events:auto;}
+  .next-btn:active{transform:scale(.95);}
+
+  /* ---------- SCREEN 1: Balloons ---------- */
+  #screen-balloons{background:linear-gradient(180deg,var(--peach) 0%, var(--cream) 100%);}
+  .headline-wrap{text-align:center; padding:0 24px; z-index:5;}
+  .eyebrow{font-size:14px; color:var(--ink-soft); font-weight:600; margin:0 0 6px;}
+  .headline{font-size:clamp(32px,9vw,50px); font-weight:700; margin:0; line-height:1.1; color:var(--rose);}
+  .subline{font-size:15px; color:var(--ink-soft); margin-top:10px; font-weight:500;}
+  .balloon-field{position:relative; width:100%; flex:1; max-height:52vh;}
+  .balloon{position:absolute; width:78px; height:96px; cursor:pointer; animation:sway 4s ease-in-out infinite; transform-origin:center;}
+  .balloon svg{width:100%; height:100%; display:block; filter:drop-shadow(0 8px 10px rgba(0,0,0,.1));}
+  .balloon.popped{visibility:hidden;}
+  @keyframes sway{0%,100%{transform:translateY(0) rotate(-4deg);} 50%{transform:translateY(-16px) rotate(4deg);}}
+  .pop-burst{position:fixed; pointer-events:none;}
+  .pop-burst span{position:absolute; width:9px; height:9px; border-radius:50%; top:45%; left:45%; animation:burst .5s ease-out forwards;}
+  @keyframes burst{to{transform:translate(var(--dx),var(--dy)) scale(0); opacity:0;}}
+  .progress-dots{display:flex; gap:8px; margin-top:14px;}
+  .progress-dots span{width:8px; height:8px; border-radius:50%; background:rgba(58,46,42,.18); transition:background .3s;}
+  .progress-dots span.done{background:var(--rose);}
+
+  /* ---------- SCREEN 2: Photos ---------- */
+  #screen-photos{background:var(--cream);}
+  .photo-head{text-align:center; padding:20px 24px 6px;}
+  .photo-head h2{font-size:24px; margin:0; font-weight:700;}
+  .photo-head p{font-size:14px; color:var(--ink-soft); margin:6px 0 0; font-weight:500;}
+  .carousel-wrap{width:100%; max-width:420px; display:flex; flex-direction:column; align-items:center; padding:6px 20px 0;}
+  .carousel{position:relative; width:100%; aspect-ratio:4/5; max-height:42vh; border-radius:22px; overflow:hidden; box-shadow:0 14px 30px rgba(0,0,0,.15); background:#eee;}
+  .carousel-track{display:flex; height:100%; transition:transform .45s cubic-bezier(.65,0,.35,1);}
+  .carousel-slide{min-width:100%; height:100%; background-size:cover; background-position:center; position:relative;}
+  .ph-placeholder{width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; background:linear-gradient(135deg,#FFE1D6,#F3E3F0); color:#a9847c;}
+  .arrow{position:absolute; top:50%; transform:translateY(-50%); width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.85); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,.15); font-size:18px;}
+  .arrow.left{left:8px;} .arrow.right{right:8px;}
+  .dots{display:flex; gap:6px; margin-top:14px;}
+  .dots span{width:7px; height:7px; border-radius:50%; background:rgba(58,46,42,.18);}
+  .dots span.active{background:var(--rose); width:18px; border-radius:5px; transition:all .3s;}
+
+  /* ---------- SCREEN 3: Message ---------- */
+  #screen-message{background:linear-gradient(180deg,#FFF6EC,#FFE9D6); padding:24px 20px;}
+  .card{background:var(--cream); border-radius:22px; padding:26px 24px; max-width:440px; width:100%; box-shadow:0 16px 36px rgba(0,0,0,.1); text-align:left; max-height:74vh; overflow-y:auto;}
+  .card .icon{font-size:26px; margin-bottom:6px; text-align:center;}
+  .card h2{font-size:19px; margin:0 0 14px; color:var(--rose); font-weight:700; text-align:center;}
+  .card p{font-size:15px; line-height:1.7; color:var(--ink); font-weight:500; margin:0 0 12px;}
+  .card p:last-of-type{margin-bottom:0;}
+  .card .sign{margin-top:16px; font-size:14px; color:var(--ink-soft); text-align:center; font-weight:600;}
+  .card::-webkit-scrollbar{width:5px;}
+  .card::-webkit-scrollbar-thumb{background:rgba(232,153,141,.4); border-radius:10px;}
+
+  /* ---------- SCREEN 4: Cake ---------- */
+  #screen-cake{background:linear-gradient(180deg,#FFF3E8,#FDE7EC);}
+  .cake-head{text-align:center; padding:0 24px;}
+  .cake-head h2{font-size:22px; margin:0; font-weight:700;}
+  .cake-head p{font-size:14px; color:var(--ink-soft); margin:6px 0 0; font-weight:500;}
+  .cake-wrap{position:relative; width:280px; height:280px; margin-top:18px;}
+  .slice{cursor:pointer; transition:transform .5s cubic-bezier(.34,1.56,.64,1), filter .4s;}
+  .slice.cut{filter:drop-shadow(0 6px 8px rgba(0,0,0,.18));}
+  .cake-note{margin-top:16px; font-size:14px; color:var(--ink-soft); font-weight:600; opacity:0; transition:opacity .5s;}
+  .cake-note.show{opacity:1;}
+
+  /* ---------- SCREEN 5: Closing ---------- */
+  #screen-closing{background:linear-gradient(180deg,#F4EFE3,#FBEFE0); padding:0 24px; position:relative;}
+  .star{position:absolute; color:var(--gold); opacity:.75; animation:twinkle 3s ease-in-out infinite;}
+  @keyframes twinkle{0%,100%{opacity:.25; transform:scale(.85);} 50%{opacity:.85; transform:scale(1);}}
+  .closing-card{text-align:center; max-width:380px; z-index:2; padding:0 20px;}
+  .closing-card h2{font-size:26px; font-weight:700; line-height:1.5; margin:0;}
+  .closing-card p{font-size:14px; color:var(--ink-soft); margin-top:12px; font-weight:500;}
+  .closing-card .sub2{font-size:14px; color:var(--ink-soft); margin-top:8px; font-weight:500;}
+  .closing-card .reveal-p{font-size:16px; color:var(--ink); font-weight:500; line-height:1.6; max-width:300px; margin-left:auto; margin-right:auto;}
+  #closingReveal h2{color:var(--rose);}
+
+  .btn-stage{position:relative; width:100%; max-width:300px; height:130px; margin:26px auto 0;}
+  .opt-btn{
+    padding:13px 30px; border-radius:100px; font-weight:600; font-size:16px;
+    font-family:'Poppins',sans-serif; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  .yes-btn{
+    background:var(--rose); color:#fff; border:none; position:absolute; left:50%; top:14px;
+    transform:translateX(-50%); z-index:2; box-shadow:0 6px 16px rgba(232,153,141,.4);
+  }
+  .yes-btn:active{transform:translateX(-50%) scale(.95);}
+  .no-btn{
+    background:#fff; color:var(--ink); border:2px solid var(--rose); position:absolute;
+    left:50%; top:74px; transform:translateX(-50%);
+    transition:left .28s cubic-bezier(.34,1.56,.64,1), top .28s cubic-bezier(.34,1.56,.64,1);
+    z-index:1;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- SCREEN 1 -->
+  <section class="screen active" id="screen-balloons">
+    <div class="headline-wrap">
+      <p class="eyebrow">A little late, but from the heart</p>
+      <h1 class="headline">Happy Birthday</h1>
+      <p class="subline">Tap the balloons</p>
+    </div>
+    <div class="balloon-field" id="balloonField"></div>
+    <div class="progress-dots" id="progressDots"></div>
+    <button class="next-btn" id="toPhotosBtn">Continue →</button>
+  </section>
+
+  <!-- SCREEN 2 -->
+  <section class="screen" id="screen-photos">
+    <button class="backdot" data-back="screen-balloons">←</button>
+    <div class="photo-head">
+      <h2>A few memories 📸</h2>
+      <p>Swipe through</p>
+    </div>
+    <div class="carousel-wrap">
+      <div class="carousel">
+        <div class="carousel-track" id="track">
+          <div class="carousel-slide" style="background-image: url('photo1.jpg');"></div>
+          <div class="carousel-slide" style="background-image: url('photo2.jpg');"></div>
+          <div class="carousel-slide" style="background-image: url('photo3.jpg');"></div>
+          <div class="carousel-slide" style="background-image: url('photo4.jpg');"></div>
+        </div>
+        <button class="arrow left" id="prevBtn">‹</button>
+        <button class="arrow right" id="nextBtn">›</button>
+      </div>
+      <div class="dots" id="carouselDots"></div>
+    </div>
+    <button class="next-btn show" id="toMessageBtn" style="margin-top:20px;">Continue →</button>
+  </section>
+
+  <!-- SCREEN 3 -->
+  <section class="screen" id="screen-message">
+    <button class="backdot" data-back="screen-photos">←</button>
+    <div class="card">
+      <div class="icon">💌</div>
+      <h2>Happiest Birthday, Divyanshi 🎂</h2>
+      <div id="messageText">
+        <p>Hii, I know birthday gaye kaafi time ho gaya hai, but woh kya hai na, uss time kuch dena bhool gaya tha… so abhi hi sahi 😅</p>
+        <p>So, Happiest Birthday Divyanshi, Gunnu, Momo etc. 🫶🏻 May you achieve everything that you want and may you always stay happy.</p>
+        <p>And I just wanted to tell you ki itna stress mat liya kar kisi cheez ka. You are the best yrr, itna bura mat socha kar apne baare mein. I genuinely believe in you — ki tu sab kuch kar legi, you can achieve everything, and you can live your life to the fullest.</p>
+        <p>Bas faltu ka zyada mat socha kar, be bakchod jaise tu pehle hua karti thi. 😂</p>
+        <p>And I just wanted to tell you ki yrr, kabhi bhi tujhe aisa lage ki tu alone hai, just remember that you have a friend by your side. Tu kuch share karegi toh mujhe bhi achha feel hoga, and isi bahane mujhe bhi koi mil jayega jise main apna bata sakun. So just chill, aur apni medicines ka dhyaan rakh. 😭</p>
+        <p>Baaki toh bahut kuch hai abhi likhne ko, but woh sab likhne baithunga toh ye birthday message nahi, novel ban jayega. 😂</p>
+        <p>Aur sunna ho toh I am just one call away. Kuch bhi zarurat pade, kuch help chahiye ho, just let me know. I am here.</p>
+        <p>Now chill, smile kar, overthink mat kar aur dhyaan rakh apna.</p>
+      </div>
+      <p class="sign">Radhey Radhey 🙏🏻</p>
+    </div>
+    <button class="next-btn show" id="toCakeBtn" style="margin-top:22px;">Continue →</button>
+  </section>
+
+  <!-- SCREEN 4 -->
+  <section class="screen" id="screen-cake">
+    <button class="backdot" data-back="screen-message">←</button>
+    <div class="cake-head">
+      <h2>Cut the cake 🎂</h2>
+      <p>Tap each slice</p>
+    </div>
+    <div class="cake-wrap">
+      <svg id="cakeSvg" viewBox="0 0 200 200" width="280" height="280"></svg>
+    </div>
+    <p class="cake-note" id="cakeNote">One slice, my treat 🍰</p>
+    <button class="next-btn" id="toClosingBtn">Continue →</button>
+  </section>
+
+  <!-- SCREEN 5 -->
+  <section class="screen" id="screen-closing">
+    <button class="backdot" data-back="screen-cake">←</button>
+    <span class="star" style="top:16%; left:14%; font-size:16px;">✦</span>
+    <span class="star" style="top:22%; right:16%; font-size:12px; animation-delay:.6s;">✦</span>
+    <span class="star" style="bottom:24%; left:20%; font-size:14px; animation-delay:1.2s;">✦</span>
+    <span class="star" style="bottom:18%; right:14%; font-size:10px; animation-delay:1.8s;">✦</span>
+
+    <div class="closing-card" id="closingIntro">
+      <h2>Yrr ab toh hass de 😄</h2>
+      <p class="sub2">ek smile toh banta hai na...</p>
+      <div class="btn-stage" id="btnStage">
+        <button class="opt-btn yes-btn" id="yesBtn">Yes</button>
+        <button class="opt-btn no-btn" id="noBtn">No</button>
+      </div>
+    </div>
+
+    <div class="closing-card" id="closingReveal" style="display:none;">
+      <h2>Yeah 🥳🎉</h2>
+      <p class="reveal-p">now, just keep this smile on your face and be charming as always ☺️</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // ---------- Balloons ----------
+  const colors = ['#E8998D','#E3B23C','#A9C6AD','#E8998D'];
+  const field = document.getElementById('balloonField');
+  const positions = [
+    {left:'8%', top:'10%'}, {left:'62%', top:'4%'},
+    {left:'30%', top:'32%'}, {left:'70%', top:'40%'},
+  ];
+  let poppedCount = 0;
+  const total = positions.length;
+  const dotsWrap = document.getElementById('progressDots');
+  positions.forEach(()=>{ const d=document.createElement('span'); dotsWrap.appendChild(d); });
+
+  function balloonSVG(color){
+    return `<svg viewBox="0 0 78 96" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="39" cy="36" rx="32" ry="36" fill="${color}"/>
+      <ellipse cx="28" cy="22" rx="9" ry="12" fill="rgba(255,255,255,.25)"/>
+      <path d="M39 72 L34 80 L44 80 Z" fill="${color}"/>
+      <line x1="39" y1="80" x2="39" y2="96" stroke="#bbb" stroke-width="1.5"/>
+    </svg>`;
+  }
+  positions.forEach((pos,i)=>{
+    const b=document.createElement('div'); b.className='balloon';
+    b.style.left=pos.left; b.style.top=pos.top; b.style.animationDelay=(i*0.4)+'s';
+    const color=colors[i%colors.length];
+    b.innerHTML=balloonSVG(color); b.addEventListener('click',()=>popBalloon(b,color));
+    field.appendChild(b);
+  });
+  function burstAt(rect,color){
+    const burst=document.createElement('div'); burst.className='pop-burst';
+    burst.style.left=rect.left+'px'; burst.style.top=rect.top+'px';
+    burst.style.width=rect.width+'px'; burst.style.height=rect.height+'px';
+    for(let i=0;i<10;i++){
+      const p=document.createElement('span');
+      const angle=(Math.PI*2*i)/10; const dist=40+Math.random()*20;
+      p.style.setProperty('--dx',Math.cos(angle)*dist+'px');
+      p.style.setProperty('--dy',Math.sin(angle)*dist+'px');
+      p.style.background=color; burst.appendChild(p);
+    }
+    document.body.appendChild(burst); setTimeout(()=>burst.remove(),550);
+  }
+  function popBalloon(b,color){
+    if(b.classList.contains('popped')) return;
+    burstAt(b.getBoundingClientRect(),color);
+    b.classList.add('popped'); poppedCount++;
+    const dot=dotsWrap.children[poppedCount-1]; if(dot) dot.classList.add('done');
+    if(poppedCount===total) document.getElementById('toPhotosBtn').classList.add('show');
+  }
+
+  // ---------- Navigation ----------
+  function goTo(id){
+    document.querySelectorAll('.screen').forEach(s=>{
+      if(s.id===id){ s.classList.remove('prev'); s.classList.add('active'); }
+      else if(s.classList.contains('active')){ s.classList.remove('active'); s.classList.add('prev'); }
+    });
+  }
+  document.getElementById('toPhotosBtn').addEventListener('click',()=>goTo('screen-photos'));
+  document.getElementById('toMessageBtn').addEventListener('click',()=>goTo('screen-message'));
+  document.getElementById('toCakeBtn').addEventListener('click',()=>goTo('screen-cake'));
+  document.getElementById('toClosingBtn').addEventListener('click',()=>goTo('screen-closing'));
+  document.querySelectorAll('.backdot').forEach(btn=>btn.addEventListener('click',()=>goTo(btn.dataset.back)));
+
+  // ---------- Carousel ----------
+  const track=document.getElementById('track');
+  const slides=track.children;
+  const dotsC=document.getElementById('carouselDots');
+  let current=0;
+  for(let i=0;i<slides.length;i++){ const d=document.createElement('span'); if(i===0)d.classList.add('active'); dotsC.appendChild(d); }
+  function updateCarousel(){
+    track.style.transform=`translateX(-${current*100}%)`;
+    [...dotsC.children].forEach((d,i)=>d.classList.toggle('active',i===current));
+  }
+  document.getElementById('prevBtn').addEventListener('click',()=>{ current=(current-1+slides.length)%slides.length; updateCarousel(); });
+  document.getElementById('nextBtn').addEventListener('click',()=>{ current=(current+1)%slides.length; updateCarousel(); });
+  let startX=0; const carousel=document.querySelector('.carousel');
+  carousel.addEventListener('touchstart',e=>startX=e.touches[0].clientX);
+  carousel.addEventListener('touchend',e=>{
+    const diff=e.changedTouches[0].clientX-startX;
+    if(diff>40){ current=(current-1+slides.length)%slides.length; updateCarousel(); }
+    else if(diff<-40){ current=(current+1)%slides.length; updateCarousel(); }
+  });
+
+  // ---------- Cake ----------
+  const cakeSvg=document.getElementById('cakeSvg');
+  const cx=100, cy=100, r=88;
+  const cakeColors=['#FFF1E6','#FFE7D6','#FFF1E6','#FFE7D6','#FFF1E6','#FFE7D6'];
+  let cutCount=0;
+  const totalSlices=6;
+  function polar(angleDeg,radius){
+    const a=(angleDeg-90)*Math.PI/180;
+    return [cx+radius*Math.cos(a), cy+radius*Math.sin(a)];
+  }
+  for(let i=0;i<totalSlices;i++){
+    const startA=i*60, endA=startA+60;
+    const [x1,y1]=polar(startA,r);
+    const [x2,y2]=polar(endA,r);
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    const d=`M${cx},${cy} L${x1},${y1} A${r},${r} 0 0,1 ${x2},${y2} Z`;
+    path.setAttribute('d',d);
+    path.setAttribute('fill',cakeColors[i]);
+    path.setAttribute('stroke','#E8998D');
+    path.setAttribute('stroke-width','2');
+    path.classList.add('slice');
+    const mid=startA+30;
+    const [dx,dy]=polar(mid,1);
+    path.addEventListener('click',()=>{
+      if(path.classList.contains('cut')) return;
+      path.classList.add('cut');
+      path.setAttribute('transform',`translate(${(dx-cx)*22},${(dy-cy)*22})`);
+      const svgRect=cakeSvg.getBoundingClientRect();
+      const px=svgRect.left + (svgRect.width*( (x1+x2+cx)/3 )/200);
+      const py=svgRect.top + (svgRect.height*( (y1+y2+cy)/3 )/200);
+      burstAt({left:px-10,top:py-10,width:20,height:20}, '#E3B23C');
+      cutCount++;
+      if(cutCount===totalSlices){
+        document.getElementById('cakeNote').classList.add('show');
+        document.getElementById('toClosingBtn').classList.add('show');
+      }
+    });
+    cakeSvg.appendChild(path);
+  }
+  // ---------- Yes / No runaway button ----------
+  const stage=document.getElementById('btnStage');
+  const noBtn=document.getElementById('noBtn');
+  const yesBtn=document.getElementById('yesBtn');
+
+  function moveNoButton(avoidX, avoidY){
+    const stageRect=stage.getBoundingClientRect();
+    const btnW=noBtn.offsetWidth, btnH=noBtn.offsetHeight;
+    const maxX=Math.max(stageRect.width-btnW,0);
+    const maxY=Math.max(stageRect.height-btnH,0);
+    let x,y,tries=0;
+    do{
+      x=Math.random()*maxX;
+      y=Math.random()*maxY;
+      tries++;
+    } while(
+      avoidX!==undefined && tries<8 &&
+      Math.hypot((x+btnW/2)-avoidX, (y+btnH/2)-avoidY) < Math.max(btnW,btnH)*1.3
+    );
+    noBtn.style.left=(x+btnW/2)+'px';
+    noBtn.style.top=y+'px';
+  }
+
+  // jump away the moment it's tapped/clicked directly
+  noBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); moveNoButton(); }, {passive:false});
+  noBtn.addEventListener('mousedown', (e)=>{ e.preventDefault(); moveNoButton(); });
+  noBtn.addEventListener('click', (e)=>{ e.preventDefault(); moveNoButton(); });
+
+  // run away as soon as the cursor/finger gets close, before it's even pressed
+  function proximityCheck(px,py){
+    const stageRect=stage.getBoundingClientRect();
+    const mx=px-stageRect.left, my=py-stageRect.top;
+    const left=parseFloat(noBtn.style.left || (noBtn.offsetLeft));
+    const top=parseFloat(noBtn.style.top || (noBtn.offsetTop));
+    const dist=Math.hypot(mx-left, my-top);
+    if(dist < 75){ moveNoButton(mx,my); }
+  }
+  stage.addEventListener('mousemove',(e)=>proximityCheck(e.clientX,e.clientY));
+  stage.addEventListener('touchmove',(e)=>{
+    if(e.touches && e.touches[0]) proximityCheck(e.touches[0].clientX,e.touches[0].clientY);
+  }, {passive:true});
+
+  yesBtn.addEventListener('click', ()=>{
+    document.getElementById('closingIntro').style.display='none';
+    const reveal=document.getElementById('closingReveal');
+    reveal.style.display='block';
+    const r=yesBtn.getBoundingClientRect();
+    burstAt({left:r.left, top:r.top, width:r.width, height:r.height}, '#E3B23C');
+  });
+
+  const centerDot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  centerDot.setAttribute('cx',cx); centerDot.setAttribute('cy',cy); centerDot.setAttribute('r',4);
+  centerDot.setAttribute('fill','#E3B23C');
+  cakeSvg.appendChild(centerDot);
+</script>
+
+</body>
+</html>
