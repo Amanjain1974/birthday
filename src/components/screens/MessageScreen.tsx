@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { PageConfig } from '@/lib/supabase';
+import type { PageConfig } from '@/lib/types';
 
 interface Props {
   config: PageConfig;

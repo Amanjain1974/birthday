@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { PageConfig } from '@/lib/supabase';
+import type { PageConfig } from '@/lib/types';
 import BalloonScreen from './screens/BalloonScreen';
 import PhotoCarouselScreen from './screens/PhotoCarouselScreen';
 import MessageScreen from './screens/MessageScreen';
